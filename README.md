@@ -21,3 +21,8 @@ running the simplest version (that even hasn't minibatches) with
 
 python rbm1.py
 
+
+the minibatch version is in rbm-minibatch.py
+
+the dropout version is in rbm-dropout.py but doesn't seem to work too well on this data.
+

@@ -1,8 +1,10 @@
-from read import read_odyssey_tuples
 import numpy
 import theano
 import theano.tensor as T
 numpy.set_printoptions(linewidth=200, threshold=10000)
+
+from codec import Codec
+from visualize_weights import VisualizeWeights
 
 class RBM1:
     def __init__(self, num_visible, num_hidden):
@@ -78,64 +80,6 @@ class RBM1:
                      (self.hbias,
                       T.cast(self.hbias + H*learning_rate,
                              'float32'))])
-
-class Codec:
-    def __init__(self, tuplesize, num_words):
-        self.tuplesize = tuplesize
-        self.num_words = num_words
-        (self.tuples, self.words) = read_odyssey_tuples(tuplesize, num_words)
-    def tuples_to_matrix(self):
-        ntuples = len(self.tuples)
-        num_visible = self.tuplesize*self.num_words
-        res = numpy.zeros((ntuples, num_visible),
-                          dtype=numpy.float32)
-        for i in range(ntuples):
-            tup = self.tuples[i]
-            for t in range(len(tup)):
-                word = tup[t]
-                res[i, word + self.num_words*t] = 1.0
-        return res
-
-import gizeh
-import math
-class VisualizeWeights:
-    def __init__(self, rbm, tuplesize, words, num_hidden):
-        self.rbm = rbm
-        self.tuplesize = tuplesize
-        self.words = words
-        self.num_hidden = num_hidden
-    def epoch_finished(self, epoch):
-        num_words = len(self.words)
-        surface = gizeh.Surface(width=1200, height=1500)
-        background = gizeh.rectangle(lx=1200, ly=1500, xy=[600,750], fill=(0,0,0))
-        background.draw(surface)
-        
-        weights = self.rbm.weights.get_value()
-        for block in range(self.tuplesize):
-            for word in range(num_words):
-                x = 40
-                y = 20+22*(block*(num_words+2)+word)
-                gizeh.text('%s %s' % (block, self.words[word]),
-                           fontfamily='Arial',
-                           fontsize=12,
-                           fill=(.7,.7,.7),
-                           xy=(x,y),
-                           h_align='left').draw(surface)
-        for block in range(self.tuplesize):
-            for word in range(num_words):
-                for h in range(self.num_hidden):
-                    vis = block*num_words+word
-                    w = weights[vis, h]
-                    r = math.log(1+abs(w))*4
-                    x = 100+22*h
-                    y = 20+22*(block*(num_words+2)+word)
-                    col = (1,1,0)
-                    if w < 0:
-                        col = (.4,.4,.4)
-                    circle = gizeh.circle(r=r, xy=[x,y], fill=col)
-                    circle.draw(surface)
-        surface.write_to_png("epoch-%03d.png" % epoch)
-
 
 
 def test():
@@ -213,9 +157,9 @@ def test():
     train(input_data)
     print(rbm.weights.get_value())
 
-    draw = VisualizeWeights(rbm, tuplesize, words, num_hidden)
+    draw = VisualizeWeights('', rbm, tuplesize, words, num_hidden)
 
-    for epoch in range(10):
+    for epoch in range(500):
         show_examples()
         all_vdiffs = numpy.zeros(num_visible)
         print('epoch ', epoch)
@@ -224,7 +168,7 @@ def test():
                                        num_visible)
             vdiffs = train(input_data)
             all_vdiffs = all_vdiffs + numpy.abs(vdiffs)
-        print('sum diffs: ', numpy.sum(all_vdiffs))
+        print('reconstruction error: ', numpy.sum(all_vdiffs))
         print(T.cast(rbm.weights.get_value()*100, 'int32').eval())
         draw.epoch_finished(epoch)
         report_hidden()
