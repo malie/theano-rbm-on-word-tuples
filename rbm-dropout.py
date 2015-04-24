@@ -89,7 +89,7 @@ class RBM:
         return (venabled, henabled)
         
 
-    def cd1_fun(self, vis, learning_rate=0.1):
+    def cd1_fun(self, vis, learning_rate=0.5):
         (venabled, henabled) = self.dropout_enabled_units()
         (W, V, H) = self.contrastive_divergence_1(vis, venabled, henabled)
         return theano.function(
@@ -119,11 +119,11 @@ def tuples_to_matrix(tuplesize, tuples, num_words):
 
         
 def test():
-    minibatch_size = 10
-    num_words = 20
-    tuplesize = 3
+    minibatch_size = 100
+    num_words = 40
+    tuplesize = 5
     num_visible = tuplesize*num_words
-    num_hidden = 45
+    num_hidden = 140
 
     codec = Codec(tuplesize, num_words)
     tuples = codec.tuples
@@ -138,7 +138,7 @@ def test():
               num_hidden = num_hidden,
               minibatch_size = minibatch_size,
               venabledp=1.0,
-              henabledp=0.8)
+              henabledp=0.7)
     id_indices = numpy.random.randint(low=0, high=num_data, size=minibatch_size)
     input_data = T.constant(encoded[id_indices])
 
@@ -185,12 +185,22 @@ def test():
                    for idx in range(num_words)
                    if rec[example, t*num_words + idx]])
 
+    def report_hidden():
+        weights = rbm.weights.get_value()
+        for h in range(num_hidden):
+            print('hidden ', h)
+            for block in range(tuplesize):
+                for word in range(num_words):
+                    w = weights[block*num_words+word, h]
+                    if w > 0.5:
+                        print('   %2i %8s  %4.1f' % (block, words[word], w))
         
     vis = T.fmatrix('vis')
     train = rbm.cd1_fun(vis)
 
     draw = VisualizeWeights('Dropout (vp:%4.2f, hp:%4.2f)' % (rbm.venabledp, rbm.henabledp),
-                            rbm, tuplesize, words, num_hidden)
+                            rbm, tuplesize, words, num_hidden,
+                            num_visible)
     for epoch in range(1000):
         show_examples()
         all_vdiffs = numpy.zeros(num_visible)
@@ -207,10 +217,11 @@ def test():
             #print('venabled', venabled)
             #print('henabled', henabled)
         print('reconstruction error: ', numpy.sum(all_vdiffs) * minibatch_size)
-        print(numpy.ndarray.astype(rbm.weights.get_value()*100, numpy.int32))
-        print(numpy.ndarray.astype(rbm.vbias.get_value()*100, numpy.int32))
-        print(numpy.ndarray.astype(rbm.hbias.get_value()*100, numpy.int32))
+        #print(numpy.ndarray.astype(rbm.weights.get_value()*100, numpy.int32))
+        #print(numpy.ndarray.astype(rbm.vbias.get_value()*100, numpy.int32))
+        #print(numpy.ndarray.astype(rbm.hbias.get_value()*100, numpy.int32))
         draw.epoch_finished(epoch)
+        report_hidden()
 
 test()
 

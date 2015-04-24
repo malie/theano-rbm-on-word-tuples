@@ -1,16 +1,19 @@
 import gizeh
 import math
 class VisualizeWeights:
-    def __init__(self, title, rbm, tuplesize, words, num_hidden):
+    def __init__(self, title, rbm, tuplesize, words, num_hidden, num_visible=60):
         self.title = title
         self.rbm = rbm
         self.tuplesize = tuplesize
         self.words = words
         self.num_hidden = num_hidden
+        self.num_visible = num_visible
+        self.width = (num_hidden+tuplesize*2)*22 + 200
+        self.height = num_visible*22 + 300
     def epoch_finished(self, epoch):
         num_words = len(self.words)
-        surface = gizeh.Surface(width=1200, height=1500)
-        background = gizeh.rectangle(lx=1200, ly=1500, xy=[600,750], fill=(0,0,0))
+        surface = gizeh.Surface(width=1200, height=self.height)
+        background = gizeh.rectangle(lx=1200, ly=self.height, xy=[600,750], fill=(0,0,0))
         background.draw(surface)
 
         gizeh.text('%s   epoch %s' % (self.title, epoch),
